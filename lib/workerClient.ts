@@ -1,7 +1,11 @@
 import { appConfig } from './config';
 
 function ensureWorker() {
-  if (!appConfig.workerUrl) throw new Error('Remote browser worker is not configured.');
+  if (!appConfig.workerUrl) {
+    throw new Error(
+      'Live Mode setup missing: set REMOTE_BROWSER_WORKER_URL to your deployed worker URL (example: https://your-worker.example.com).'
+    );
+  }
   return appConfig.workerUrl.replace(/\/$/, '');
 }
 

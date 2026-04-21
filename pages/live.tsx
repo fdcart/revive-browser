@@ -93,6 +93,12 @@ export default function LivePage() {
           <button onClick={() => post('close').finally(() => setSessionId(''))}>Terminate</button>
         </div>
         {error && <StatusBanner type="error" message={error} />}
+        {error && error.toLowerCase().includes('remote_browser_worker_url') && (
+          <StatusBanner
+            type="warn"
+            message="Fix: add REMOTE_BROWSER_WORKER_URL in your Vercel project settings, and make sure that worker endpoint is online."
+          />
+        )}
         <StatusBanner message="For ChatGPT use Live Mode only. Login depends on remote session cookies, JavaScript, and security checks." type="info" />
         <StatusBanner message="How to use Live Mode: (1) Tap screenshot to click, (2) use arrows to scroll, (3) type in the helper box then press Send Text." type="info" />
         {idleLabel && <StatusBanner message={idleLabel} type="warn" />}

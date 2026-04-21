@@ -133,6 +133,14 @@ Set `REMOTE_BROWSER_WORKER_URL=http://localhost:4000` in your environment.
 3. Set `REMOTE_BROWSER_WORKER_URL` env var to your worker URL.
 4. Deploy.
 
+### Live Mode troubleshooting
+
+If you see **\"Live Mode setup missing\"** or **\"worker not configured\"**:
+
+1. In Vercel project settings, set `REMOTE_BROWSER_WORKER_URL` (full HTTPS URL).
+2. Confirm `GET <REMOTE_BROWSER_WORKER_URL>/health` returns JSON `{ \"ok\": true }`.
+3. Redeploy frontend after changing env vars.
+
 ## Deploy worker separately
 
 Use Railway/Fly/Render/VPS.
