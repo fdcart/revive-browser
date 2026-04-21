@@ -16,6 +16,7 @@ export default function LivePage() {
   const [sessionId, setSessionId] = useState('');
   const [frameUrl, setFrameUrl] = useState('');
   const [error, setError] = useState('');
+  const [sessionState, setSessionState] = useState<'starting' | 'ready' | 'error'>('starting');
   const [quality, setQuality] = useState('55');
   const [helperText, setHelperText] = useState('');
   const [idleLabel, setIdleLabel] = useState('');
@@ -23,13 +24,22 @@ export default function LivePage() {
 
   useEffect(() => setUrl(initialUrl), [initialUrl]);
   useEffect(() => {
+    setSessionState('starting');
+    setError('');
     fetch('/api/live/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: initialUrl }) })
       .then((r) => r.json())
       .then((d: ApiPayload) => {
-        if (!d.ok || !d.sessionId) return setError(d.error || 'Could not start live session');
+        if (!d.ok || !d.sessionId) {
+          setSessionState('error');
+          return setError(d.error || 'Could not start live session');
+        }
         setSessionId(d.sessionId);
+        setSessionState('ready');
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => {
+        setSessionState('error');
+        setError(String(e));
+      });
   }, [initialUrl]);
 
   useEffect(() => {
@@ -52,12 +62,19 @@ export default function LivePage() {
     return () => window.clearInterval(timer);
   }, [sessionId]);
 
-  const post = (path: string, body: object = {}) => fetch(`/api/live/${sessionId}/${path}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-  }).then((r) => r.json()).then((d: ApiPayload) => {
-    if (!d.ok) setError(d.error || 'Operation failed');
-    return d;
-  });
+  const post = (path: string, body: object = {}) => {
+    if (!sessionId) {
+      const msg = 'Live session is not ready yet.';
+      setError(msg);
+      return Promise.resolve({ ok: false, error: msg } as ApiPayload);
+    }
+    return fetch(`/api/live/${sessionId}/${path}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    }).then((r) => r.json()).then((d: ApiPayload) => {
+      if (!d.ok) setError(d.error || 'Operation failed');
+      return d;
+    });
+  };
 
   const clickFrame = (e: MouseEvent<HTMLImageElement>) => {
     const el = e.currentTarget;
@@ -99,11 +116,13 @@ export default function LivePage() {
             message="Fix: add REMOTE_BROWSER_WORKER_URL in your Vercel project settings, and make sure that worker endpoint is online."
           />
         )}
-        <StatusBanner message="For ChatGPT use Live Mode only. Login depends on remote session cookies, JavaScript, and security checks." type="info" />
-        <StatusBanner message="How to use Live Mode: (1) Tap screenshot to click, (2) use arrows to scroll, (3) type in the helper box then press Send Text." type="info" />
+        {!error && <StatusBanner message="For ChatGPT use Live Mode only. Login depends on remote session cookies, JavaScript, and security checks." type="info" />}
+        {!error && <StatusBanner message="How to use Live Mode: (1) Tap screenshot to click, (2) use arrows to scroll, (3) type in the helper box then press Send Text." type="info" />}
         {idleLabel && <StatusBanner message={idleLabel} type="warn" />}
         <div className="livePanel">
-          {sessionId ? <LiveViewport src={frameUrl || `/api/live/${sessionId}/frame`} onClick={clickFrame} /> : <p>Starting session…</p>}
+          {sessionState === 'ready' && sessionId && <LiveViewport src={frameUrl || `/api/live/${sessionId}/frame`} onClick={clickFrame} />}
+          {sessionState === 'starting' && <p>Starting Live Mode session…</p>}
+          {sessionState === 'error' && <p>Live Mode could not start. Please use Retry after fixing the message above.</p>}
         </div>
         <form className="row" onSubmit={navigate}>
           <input value={helperText} onChange={(e) => setHelperText(e.target.value)} placeholder="Type helper for focused field" />
