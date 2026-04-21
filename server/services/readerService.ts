@@ -27,8 +27,8 @@ function pickPublished(document: Document): string | undefined {
 }
 
 function sanitize(html: string): string {
-  const window = new JSDOM('').window as unknown as Window;
-  const DOMPurify = createDOMPurify(window);
+  const dom = new JSDOM('');
+  const DOMPurify = createDOMPurify(dom.window as unknown as Parameters<typeof createDOMPurify>[0]);
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
       'a', 'p', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'pre', 'code', 'ul', 'ol', 'li', 'img', 'figure',
