@@ -10,12 +10,20 @@ export default function HomePage() {
   const router = useRouter();
   const [url, setUrl] = useState('');
   const [recent, setRecent] = useState<string[]>([]);
-  const [workerOnline, setWorkerOnline] = useState<boolean | null>(null);
+  const [workerState, setWorkerState] = useState<'checking' | 'online' | 'offline'>('checking');
+
+  const checkWorker = () => {
+    setWorkerState('checking');
+    fetch('/api/live/worker-health')
+      .then((r) => r.json())
+      .then((d) => setWorkerState(d.ok ? 'online' : 'offline'))
+      .catch(() => setWorkerState('offline'));
+  };
 
   useEffect(() => {
     const raw = window.localStorage.getItem('cloudbrowse_recent_urls');
     if (raw) setRecent(JSON.parse(raw));
-    fetch('/api/live/worker-health').then((r) => r.json()).then((d) => setWorkerOnline(Boolean(d.ok))).catch(() => setWorkerOnline(false));
+    checkWorker();
   }, []);
 
   const saveRecent = (value: string) => {
@@ -35,7 +43,13 @@ export default function HomePage() {
       <Head><title>{APP_NAME}</title></Head>
       <BrowserShell title={`${APP_NAME} Start` }>
         <TopNavBar url={url} onUrlChange={setUrl} />
-        {workerOnline === false && <StatusBanner type="warn" message="Live worker offline. Reader Mode still works." />}
+        {workerState === 'checking' && <StatusBanner type="info" message="Checking Live Mode connection..." />}
+        {workerState === 'offline' && (
+          <StatusBanner
+            type="warn"
+            message="Live Mode is temporarily unavailable right now. You can still use Reader Mode for articles."
+          />
+        )}
         <div className="homePanel">
           <h1>{APP_NAME}</h1>
           <p>A simple cloud browser for older devices.</p>
@@ -52,8 +66,9 @@ export default function HomePage() {
           </div>
           <div className="row">
             <button onClick={() => go('reader')}>Open in Reader Mode</button>
-            <button onClick={() => go('live')}>Open in Live Mode</button>
+            <button onClick={() => go('live')} disabled={workerState === 'offline'}>Open in Live Mode</button>
             <button onClick={() => setUrl('https://chatgpt.com')}>Try ChatGPT URL</button>
+            <button onClick={checkWorker}>Check Live Mode Again</button>
           </div>
           {!!recent.length && (
             <div>
