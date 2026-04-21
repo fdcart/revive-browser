@@ -37,6 +37,7 @@ export default function ReaderPage() {
         {data && !data.ok && (
           <StatusBanner type="warn" message={data.error || 'This page works better in Live Mode.'} />
         )}
+        <StatusBanner message="Reader Mode is best for articles and news pages. For ChatGPT or apps, switch to Live Mode." type="info" />
         <main className={dark ? 'readerBody dark' : 'readerBody'} style={style}>
           {data?.ok ? (
             <article>

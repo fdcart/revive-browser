@@ -32,6 +32,18 @@ It offers two modes:
 - Live mode coordinates a persistent browser session in a separate worker service.
 - Designed for compatibility and reading-first usage, not perfect support for every advanced web app.
 
+## Beginner quick start (for people new to browsers)
+
+1. Open the app homepage.
+2. Tap the long address bar and type a website name (example: `wikipedia.org`).
+3. Tap **Open in Reader Mode** first.
+4. If the page does not look right, go back and tap **Open in Live Mode**.
+5. In Live Mode:
+   - Tap the screenshot to click on the remote page.
+   - Use up/down buttons to scroll.
+   - Use the text helper + **Send Text** to type into focused fields.
+6. For ChatGPT, open `chatgpt.com` in **Live Mode only**.
+
 ## Why this works on iOS 12
 
 - The client UI is intentionally lightweight (simple CSS/JS and standard form controls).

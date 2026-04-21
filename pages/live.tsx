@@ -94,6 +94,7 @@ export default function LivePage() {
         </div>
         {error && <StatusBanner type="error" message={error} />}
         <StatusBanner message="For ChatGPT use Live Mode only. Login depends on remote session cookies, JavaScript, and security checks." type="info" />
+        <StatusBanner message="How to use Live Mode: (1) Tap screenshot to click, (2) use arrows to scroll, (3) type in the helper box then press Send Text." type="info" />
         {idleLabel && <StatusBanner message={idleLabel} type="warn" />}
         <div className="livePanel">
           {sessionId ? <LiveViewport src={frameUrl || `/api/live/${sessionId}/frame`} onClick={clickFrame} /> : <p>Starting session…</p>}

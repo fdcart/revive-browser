@@ -38,10 +38,22 @@ export default function HomePage() {
         {workerOnline === false && <StatusBanner type="warn" message="Live worker offline. Reader Mode still works." />}
         <div className="homePanel">
           <h1>{APP_NAME}</h1>
-          <p>A Chrome-inspired cloud browser shell for older devices.</p>
+          <p>A simple cloud browser for older devices.</p>
+          <div className="beginnerBox">
+            <h2>First time here? Do this:</h2>
+            <ol>
+              <li>Type a website in the big bar (example: <code>wikipedia.org</code>).</li>
+              <li>Tap <strong>Open in Reader Mode</strong> for easy reading pages.</li>
+              <li>If a site looks broken, tap <strong>Open in Live Mode</strong>.</li>
+              <li>In Live Mode, tap the page image to click buttons and links.</li>
+              <li>Use <strong>Send Text</strong> to type into login boxes or chat fields.</li>
+            </ol>
+            <p className="smallText">Tip: ChatGPT should be opened in Live Mode, not Reader Mode.</p>
+          </div>
           <div className="row">
             <button onClick={() => go('reader')}>Open in Reader Mode</button>
             <button onClick={() => go('live')}>Open in Live Mode</button>
+            <button onClick={() => setUrl('https://chatgpt.com')}>Try ChatGPT URL</button>
           </div>
           {!!recent.length && (
             <div>
