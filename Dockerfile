@@ -1,17 +1,13 @@
 FROM mcr.microsoft.com/playwright:v1.51.1-jammy
 WORKDIR /app
 
-COPY package.json tsconfig.json tsconfig.server.json next.config.js next-env.d.ts ./
+COPY package.json tsconfig.worker.json tsconfig.json types.d.ts ./
 RUN npm install
 
-COPY pages ./pages
-COPY components ./components
-COPY server ./server
-COPY styles ./styles
-COPY .env.example ./
-COPY README.md ./
-RUN npm run build
+COPY worker ./worker
+COPY lib ./lib
 
-ENV NODE_ENV=production
-EXPOSE 3000
-CMD ["npm", "run", "start"]
+RUN npx tsc -p tsconfig.worker.json
+
+EXPOSE 4000
+CMD ["node", "dist-worker/worker/index.js"]

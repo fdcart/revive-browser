@@ -1,83 +1,153 @@
-# Revive Browser MVP
+# CloudBrowse (Revive Browser MVP)
 
-Revive Browser is a production-minded MVP for older phones (including Chrome on iOS 12) to open modern websites through a hosted modern browser.
+CloudBrowse is a Vercel-deployable MVP that helps older devices (including Chrome on iOS 12) access modern websites by using server-side processing.
 
-It provides:
+It offers two modes:
+- **Reader Mode**: extracts lightweight article content.
+- **Live Mode**: uses a separate remote Playwright worker and sends screenshot frames to the old device.
 
-- **Reader Mode** for extracting clean, readable article content.
-- **Live Mode** for fallback remote browsing using periodic screenshots from Playwright Chromium.
+## Architecture (text diagram)
 
-## What this app does
+```text
+[iOS 12 Chrome Client]
+        |
+        v
+[Next.js on Vercel]
+  - UI pages (/ /reader /live)
+  - Reader API (/api/reader/open)
+  - Live coordination APIs (/api/live/*)
+        |
+        v
+[Remote Browser Worker (Railway/Fly/Render/VPS)]
+  - Node + Express + Playwright
+  - session lifecycle
+  - frame capture
+  - click/scroll/type/navigation
+```
 
-1. User enters a URL in `/`.
-2. Reader mode calls `POST /api/reader/open`, fetches and parses the page using Mozilla Readability.
-3. Live mode creates a server-side browser session via `POST /api/live/start`.
-4. Client polls `GET /api/live/:sessionId/frame` for updated screenshots.
-5. Basic controls send click/scroll/type/navigation commands.
-6. On failure, APIs return an `errorId` that can be inspected at `GET /api/diagnostics/:errorId`.
-7. Live sessions expose `GET /api/live/:sessionId/info` and `POST /api/live/:sessionId/quality` for basic diagnostics and JPEG quality tuning.
+## What the app does
 
-## Known limitations
+- Lets users enter a URL and choose Reader or Live mode.
+- Reader mode runs fully from the Next.js/Vercel app.
+- Live mode coordinates a persistent browser session in a separate worker service.
+- Designed for compatibility and reading-first usage, not perfect support for every advanced web app.
 
-- Not a full pixel-perfect browser for every site.
-- Best for articles, blogs, news, docs, and basic forms/navigation.
-- Highly interactive single-page apps, drag/drop UIs, media-heavy apps, and anti-bot-protected pages may only partially work or fail.
-- Live mode uses screenshot polling, not low-latency video streaming.
+## Why this works on iOS 12
+
+- The client UI is intentionally lightweight (simple CSS/JS and standard form controls).
+- No WebRTC required in v1.
+- Live mode uses ordinary HTTP screenshot polling.
+- Modern JS complexity runs in the remote Chromium worker, not on the old iOS browser.
+
+## Why Live Mode is not hosted directly on Vercel
+
+Vercel Serverless Functions are not ideal for long-lived browser sessions. Playwright sessions require persistent process/state and cleanup loops. This MVP keeps those in a separate worker service and uses Vercel only for frontend + lightweight coordination APIs.
+
+## Using ChatGPT in Live Mode
+
+- ChatGPT is intended for **Live Mode only**.
+- The worker allows navigation to `chatgpt.com` by default.
+- You can attempt login and basic usage through remote clicking, scrolling, and typing.
+- This does **not** mean ChatGPT runs natively on iOS 12.
+- Compatibility depends on worker session stability, cookies, JavaScript execution, and OpenAI security checks.
+- Some advanced interactions may be partial or fail.
 
 ## Security notes
 
-Server-side protections in this MVP:
+- URL normalization and SSRF checks.
+- Blocks localhost/private network and metadata-like targets.
+- Domain allow/block hooks via env vars.
+- Request timeout and size caps for Reader Mode.
+- API rate limiting.
+- Worker session idle cleanup.
 
-- URL validation and normalization.
-- SSRF protections for localhost/private-network targets.
-- HTTP/HTTPS only.
-- Simple allow/block domain hooks.
-- Rate limiting on `/api`.
-- Request timeout defaults.
-- Idle live-session cleanup.
-- Server-side error log capture with retrievable diagnostic IDs.
+## Known limitations
 
-## Why this works for iOS 12
+- Not all websites will work perfectly.
+- Best for articles, blogs, docs, and basic browsing.
+- Highly interactive apps may partially work.
+- Live mode frame polling is not low-latency video streaming.
 
-- The client stays simple: plain HTML/CSS, classic form controls, basic React events.
-- No Service Worker, WebRTC, or advanced browser-only APIs required.
-- Live mode relies on image polling over normal HTTP.
-- Reader mode renders lightweight sanitized HTML content.
+## Project tree
 
-## Local development
+```text
+.
+├── components/
+├── lib/
+├── pages/
+│   ├── api/
+│   ├── index.tsx
+│   ├── reader.tsx
+│   └── live.tsx
+├── styles/
+├── worker/
+├── Dockerfile
+├── .env.example
+└── README.md
+```
+
+## Environment variables
+
+See `.env.example`.
+
+Required on Vercel:
+- `REMOTE_BROWSER_WORKER_URL` (public HTTPS URL of deployed worker)
+
+## Local run
+
+### 1) Frontend (Next.js)
 
 ```bash
 npm install
-npx playwright install chromium
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+App: `http://localhost:3000`
 
-## Production build
-
-```bash
-npm install
-npm run build
-npm run start
-```
-
-## Docker
+### 2) Worker
 
 ```bash
-docker build -t revive-browser .
-docker run --rm -p 3000:3000 --env-file .env.example revive-browser
+npm run worker:dev
 ```
 
-## Environment
+Worker: `http://localhost:4000`
 
-Copy `.env.example` to `.env` and tune values as needed.
+Set `REMOTE_BROWSER_WORKER_URL=http://localhost:4000` in your environment.
 
-## Project structure
+## Deploy frontend to Vercel
 
-- `pages/` Next.js pages for `/`, `/reader`, `/live`.
-- `components/` shared UI pieces.
-- `server/` Express API, middleware, and service modules.
-  - `services/urlGuard.ts` URL validation + SSRF controls
-  - `services/readerService.ts` Readability extraction + sanitization
-  - `services/liveSessionService.ts` Playwright session management
+1. Push this repo.
+2. Import to Vercel.
+3. Set `REMOTE_BROWSER_WORKER_URL` env var to your worker URL.
+4. Deploy.
+
+## Deploy worker separately
+
+Use Railway/Fly/Render/VPS.
+
+Worker Docker image:
+
+```bash
+docker build -t cloudbrowse-worker .
+docker run --rm -p 4000:4000 --env-file .env.example cloudbrowse-worker
+```
+
+## API overview
+
+Reader:
+- `POST /api/reader/open`
+
+Live coordination (Vercel):
+- `POST /api/live/start`
+- `GET /api/live/:sessionId/frame`
+- `POST /api/live/:sessionId/click`
+- `POST /api/live/:sessionId/scroll`
+- `POST /api/live/:sessionId/type`
+- `POST /api/live/:sessionId/navigate`
+- `POST /api/live/:sessionId/close`
+- `POST /api/live/:sessionId/back`
+- `POST /api/live/:sessionId/forward`
+- `POST /api/live/:sessionId/reload`
+- `POST /api/live/:sessionId/quality`
+- `GET /api/live/:sessionId/info`
+- `GET /api/live/worker-health`

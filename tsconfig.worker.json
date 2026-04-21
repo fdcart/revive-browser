@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist-worker",
+    "module": "commonjs"
+  },
+  "include": ["worker/**/*.ts", "lib/urlGuard.ts", "lib/config.ts"]
+}
